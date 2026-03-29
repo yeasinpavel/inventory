@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>StockMgr</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="StockMgr">
+<meta name="theme-color" content="#2D6A4F">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+  :root {
+    --bg:#F7F6F3;--surface:#FFFFFF;--surface2:#F0EFE9;--border:#E5E3DB;
+    --text:#1A1916;--text2:#6B6860;--text3:#9B9890;
+    --accent:#2D6A4F;--accent-light:#E8F4EE;
+    --red:#C0392B;--red-light:#FDECEA;
+    --green:#2D6A4F;--green-light:#E8F4EE;
+    --radius:12px;--radius-sm:8px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5}
+  .nav{background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;padding:0 16px}
+  .nav-inner{display:flex;align-items:center;justify-content:space-between;height:52px;max-width:600px;margin:0 auto}
+  .nav-logo{font-weight:600;font-size:15px;letter-spacing:-0.3px}.nav-logo span{color:var(--accent)}
+  .tabbar{background:var(--surface);border-top:1px solid var(--border);position:fixed;bottom:0;left:0;right:0;z-index:100;display:flex;justify-content:space-around;padding:6px 0 calc(6px + env(safe-area-inset-bottom))}
+  .tab-btn{display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 8px;border:none;background:none;cursor:pointer;color:var(--text3);font-family:'DM Sans',sans-serif;font-size:10px;font-weight:500;transition:color 0.15s}
+  .tab-btn.active{color:var(--accent)}.tab-btn svg{width:20px;height:20px}
+  .page{display:none;padding:16px;padding-bottom:80px;max-width:600px;margin:0 auto}.page.active{display:block}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+  .card+.card{margin-top:12px}
+  .card-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .card-title{font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text2)}
+  .card-body{padding:16px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 16px;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;border:none;cursor:pointer;transition:all 0.15s;white-space:nowrap}
+  .btn-primary{background:var(--accent);color:#fff}.btn-primary:active{opacity:0.85}
+  .btn-ghost{background:var(--surface2);color:var(--text);border:1px solid var(--border)}.btn-ghost:active{opacity:0.75}
+  .btn-danger{background:var(--red-light);color:var(--red)}
+  .btn-sm{padding:7px 12px;font-size:12px}.btn-full{width:100%}
+  .input-group{margin-bottom:14px}.input-group:last-child{margin-bottom:0}
+  label{display:block;font-size:12px;font-weight:500;color:var(--text2);margin-bottom:6px}
+  input,select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text);background:var(--surface);outline:none;transition:border-color 0.15s;-webkit-appearance:none}
+  input:focus,select:focus{border-color:var(--accent)}
+  .badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500}
+  .badge-up{background:var(--red-light);color:var(--red)}
+  .badge-down{background:var(--green-light);color:var(--green)}
+  .badge-same{background:var(--surface2);color:var(--text2)}
+  .search-wrap{position:relative;margin-bottom:14px}.search-wrap input{padding-left:38px}
+  .search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text3)}
+  .filter-row{display:flex;gap:8px;margin-bottom:14px;overflow-x:auto;padding-bottom:4px}
+  .filter-row::-webkit-scrollbar{display:none}
+  .filter-chip{flex-shrink:0;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:500;border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;white-space:nowrap}
+  .filter-chip.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .product-item{padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.1s}
+  .product-item:last-child{border-bottom:none}.product-item:active{background:var(--surface2)}
+  .product-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+  .product-name{font-weight:500;font-size:14px}
+  .product-meta{font-size:12px;color:var(--text2);margin-top:3px}
+  .product-price{text-align:right;flex-shrink:0}
+  .product-price-rmb{font-family:'DM Mono',monospace;font-size:15px;font-weight:500}
+  .product-price-bdt{font-size:11px;color:var(--text2);margin-top:1px}
+  .product-bottom{display:flex;align-items:center;gap:6px;margin-top:8px;flex-wrap:wrap}
+
+  /* BROWSE */
+  .browse-category{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:12px;overflow:hidden}
+  .browse-cat-header{padding:14px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
+  .browse-cat-header:active{background:var(--surface2)}
+  .browse-cat-name{font-weight:600;font-size:15px}
+  .browse-cat-meta{font-size:11px;color:var(--text2);margin-top:2px}
+  .browse-cat-arrow{color:var(--text3);transition:transform 0.2s;font-size:13px}
+  .browse-cat-arrow.open{transform:rotate(180deg)}
+  .browse-cat-body{display:none;border-top:1px solid var(--border)}.browse-cat-body.open{display:block}
+  .browse-brand{border-bottom:1px solid var(--border)}.browse-brand:last-child{border-bottom:none}
+  .browse-brand-header{padding:10px 16px 10px 20px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:var(--surface2);user-select:none}
+  .browse-brand-header:active{opacity:0.8}
+  .browse-brand-name{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text2)}
+  .browse-brand-arrow{color:var(--text3);transition:transform 0.2s;font-size:11px}
+  .browse-brand-arrow.open{transform:rotate(180deg)}
+  .browse-brand-body{display:none}.browse-brand-body.open{display:block}
+  .browse-model{padding:11px 16px 11px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:background 0.1s}
+  .browse-model:last-child{border-bottom:none}.browse-model:active{background:var(--surface2)}
+  .browse-model-name{font-size:13px;font-weight:500}
+  .browse-model-qty{font-size:11px;color:var(--text2);margin-top:2px}
+  .browse-model-price{text-align:right;flex-shrink:0}
+  .browse-model-rmb{font-family:'DM Mono',monospace;font-size:13px;font-weight:500}
+  .browse-model-bdt{font-size:11px;color:var(--text2)}
+
+  /* MODALS */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:200;align-items:flex-end;justify-content:center}
+  .modal-overlay.open{display:flex}
+  .modal{background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-width:600px;max-height:85vh;overflow-y:auto;padding:0 0 calc(20px + env(safe-area-inset-bottom));animation:slideUp 0.25s ease}
+  @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+  .modal-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 0}
+  .modal-header{padding:16px 20px;border-bottom:1px solid var(--border)}
+  .modal-title{font-weight:600;font-size:16px}.modal-sub{font-size:12px;color:var(--text2);margin-top:2px}
+  .modal-body{padding:16px 20px}
+  .history-item{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)}
+  .history-item:last-child{border-bottom:none}
+  .history-date{font-size:12px;color:var(--text2)}.history-qty{font-size:12px;color:var(--text2)}
+  .history-price{font-family:'DM Mono',monospace;font-weight:500}
+  .stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 12px;text-align:center}
+  .stat-val{font-family:'DM Mono',monospace;font-size:18px;font-weight:500}
+  .stat-label{font-size:10px;color:var(--text2);margin-top:3px;text-transform:uppercase;letter-spacing:0.4px}
+  .upload-area{border:2px dashed var(--border);border-radius:var(--radius);padding:32px 20px;text-align:center;cursor:pointer;transition:border-color 0.15s,background 0.15s;background:var(--surface);display:block}
+  .upload-area:active{border-color:var(--accent);background:var(--accent-light)}
+  .upload-icon{font-size:32px;margin-bottom:10px}.upload-text{font-weight:500;margin-bottom:4px}.upload-sub{font-size:12px;color:var(--text2)}
+  .file-item{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border)}
+  .file-item:last-child{border-bottom:none}
+  .file-name{font-weight:500;font-size:13px}.file-date{font-size:11px;color:var(--text2);margin-top:2px}.file-rows{font-size:11px;color:var(--accent)}
+  .markup-item{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border)}
+  .markup-item:last-child{border-bottom:none}
+  .markup-cat{flex:1;font-size:13px;font-weight:500}
+  .markup-input{width:80px;padding:7px 10px;text-align:right}
+  .merge-item{padding:14px 16px;border-bottom:1px solid var(--border)}.merge-item:last-child{border-bottom:none}
+  .merge-names{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+  .merge-name{padding:4px 10px;border-radius:6px;font-size:13px;background:var(--surface2);border:1px solid var(--border)}
+  .merge-arrow{color:var(--text3);font-size:14px}
+  .merge-actions{display:flex;gap:8px;flex-wrap:wrap}
+  .export-option{padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:12px;transition:background 0.1s}
+  .export-option:last-child{border-bottom:none}.export-option:active{background:var(--surface2)}
+  .export-icon{width:36px;height:36px;border-radius:10px;background:var(--accent-light);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .export-label{font-weight:500}.export-desc{font-size:12px;color:var(--text2);margin-top:1px}
+  .conv-bar{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;display:flex;align-items:center;gap:10px;margin-bottom:14px}
+  .conv-label{font-size:12px;color:var(--text2);flex-shrink:0}
+  .conv-input{flex:1;border:none;border-bottom:1px solid var(--border);border-radius:0;padding:4px 0;font-size:16px;font-weight:600;font-family:'DM Mono',monospace;background:transparent}
+  .conv-input:focus{border-color:var(--accent);outline:none}
+  .conv-unit{font-size:12px;color:var(--text2);flex-shrink:0}
+  .bar-chart{display:flex;align-items:flex-end;gap:4px;height:80px}
+  .bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+  .bar{width:100%;border-radius:4px 4px 0 0;background:var(--accent);min-height:4px}
+  .bar-label{font-size:9px;color:var(--text3);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%}
+  .date-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:center;justify-content:center;padding:20px}
+  .date-modal.open{display:flex}
+  .date-modal-box{background:var(--surface);border-radius:var(--radius);padding:24px;width:100%;max-width:340px;animation:fadeIn 0.2s ease}
+  @keyframes fadeIn{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}
+  .date-modal-title{font-weight:600;font-size:16px;margin-bottom:6px}
+  .date-modal-sub{font-size:12px;color:var(--text2);margin-bottom:20px;word-break:break-all}
+  .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;padding:10px 18px;border-radius:20px;font-size:13px;font-weight:500;z-index:999;opacity:0;transition:opacity 0.2s;white-space:nowrap;pointer-events:none}
+  .toast.show{opacity:1}
+  .empty{text-align:center;padding:48px 20px;color:var(--text2)}
+  .empty-icon{font-size:40px;margin-bottom:12px}.empty-text{font-weight:500;margin-bottom:6px}.empty-sub{font-size:12px}
+  .section-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--text3);margin:16px 0 8px}
+  .row{display:flex;gap:8px}.mt-12{margin-top:12px}
+
+  /* MANUAL ENTRY */
+  .me-header{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px}
+  .me-field{margin-bottom:12px}.me-field:last-child{margin-bottom:0}
+  .me-field label{display:block;font-size:12px;font-weight:500;color:var(--text2);margin-bottom:5px}
+  .me-suggest{position:relative}
+  .me-suggest-list{position:absolute;top:100%;left:0;right:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);z-index:50;max-height:160px;overflow-y:auto;display:none;box-shadow:0 4px 16px rgba(0,0,0,0.1)}
+  .me-suggest-list.open{display:block}
+  .me-suggest-item{padding:10px 12px;font-size:13px;cursor:pointer;border-bottom:1px solid var(--border)}
+  .me-suggest-item:last-child{border-bottom:none}.me-suggest-item:active{background:var(--surface2)}
+  .me-table{width:100%;border-collapse:collapse}
+  .me-table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:12px}
+  .me-table-head{display:grid;grid-template-columns:1fr 60px 90px 56px 28px;gap:0;background:var(--surface2);border-bottom:1px solid var(--border);padding:8px 10px;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.4px}
+  .me-row{display:grid;grid-template-columns:1fr 60px 90px 56px 28px;gap:4px;align-items:center;padding:7px 10px;border-bottom:1px solid var(--border)}
+  .me-row:last-child{border-bottom:none}
+  .me-row input{padding:7px 8px;font-size:13px;border:1px solid var(--border);border-radius:6px;background:var(--bg)}
+  .me-row input:focus{border-color:var(--accent);background:var(--surface)}
+  .me-cur-toggle{display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden;height:34px}
+  .me-cur-btn{flex:1;border:none;background:none;font-size:11px;font-weight:600;cursor:pointer;color:var(--text3);transition:all 0.1s;padding:0}
+  .me-cur-btn.active{background:var(--accent);color:#fff}
+  .me-del-btn{width:24px;height:24px;border:none;background:none;color:var(--text3);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:4px;padding:0}
+  .me-del-btn:active{background:var(--red-light);color:var(--red)}
+  .me-add-row{width:100%;padding:10px;border:none;background:none;color:var(--accent);font-family:"DM Sans",sans-serif;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;border-top:1px solid var(--border)}
+  .me-add-row:active{background:var(--accent-light)}
+  .me-preview{font-size:11px;color:var(--text3);margin-top:2px;min-height:14px}
+
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <div class="nav-inner">
+    <div class="nav-logo">Stock<span>Mgr</span></div>
+    <button class="btn btn-ghost btn-sm" onclick="openExportModal()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Export
+    </button>
+  </div>
+</div>
+
+<div id="page-products" class="page active">
+  <div class="conv-bar">
+    <span class="conv-label">1 RMB =</span>
+    <input class="conv-input" type="number" id="convRate" value="18" step="0.1" onchange="saveConvRate();renderProducts();renderBrowse()">
+    <span class="conv-unit">BDT</span>
+  </div>
+  <div class="search-wrap">
+    <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input type="text" id="searchInput" placeholder="Search brand, model, category..." oninput="renderProducts()">
+  </div>
+  <div class="filter-row" id="categoryFilters"></div>
+  <div id="productList"></div>
+</div>
+
+<div id="page-browse" class="page">
+  <div id="browseContent"></div>
+</div>
+
+<div id="page-dashboard" class="page">
+  <div id="dashContent"></div>
+</div>
+
+<div id="page-upload" class="page">
+  <label class="upload-area" for="fileInput">
+    <div class="upload-icon">📂</div>
+    <div class="upload-text">Upload Excel Files</div>
+    <div class="upload-sub">Tap to select one or multiple .xlsx files</div>
+    <input type="file" id="fileInput" accept=".xlsx" multiple style="display:none" onchange="handleFileUpload(event)">
+  </label>
+  <div class="section-label" style="margin-top:20px">Uploaded Files</div>
+  <div class="card" id="fileList"><div class="empty"><div class="empty-icon">📁</div><div class="empty-text">No files yet</div></div></div>
+</div>
+
+<div id="page-settings" class="page">
+  <div class="section-label">Per-Category Markup (BDT)</div>
+  <div class="card" id="markupTable"></div>
+  <div style="margin-top:12px"><button class="btn btn-primary btn-full" onclick="saveMarkup()">Save Markup</button></div>
+  <div id="mergeToolContent" style="display:none"></div>
+  <div class="section-label" style="margin-top:20px">Data</div>
+  <div class="card"><div class="card-body"><button class="btn btn-danger btn-full" onclick="clearAllData()">Clear All Data</button></div></div>
+</div>
+
+
+<div id="page-manual" class="page">
+  <div class="me-header">
+    <div class="me-field">
+      <label>Category</label>
+      <div class="me-suggest">
+        <input type="text" id="me-cat" placeholder="e.g. Power Flex" oninput="meSuggest('me-cat','meCatList',()=>[...new Set(DB.products.map(p=>p.category))].sort())" onblur="setTimeout(()=>document.getElementById('meCatList').classList.remove('open'),200)" autocomplete="off">
+        <div class="me-suggest-list" id="meCatList"></div>
+      </div>
+    </div>
+    <div class="me-field">
+      <label>Brand</label>
+      <div class="me-suggest">
+        <input type="text" id="me-brand" placeholder="e.g. Samsung" oninput="meSuggest('me-brand','meBrandList',()=>[...new Set(DB.products.map(p=>p.brand))].sort())" onblur="setTimeout(()=>document.getElementById('meBrandList').classList.remove('open'),200)" autocomplete="off">
+        <div class="me-suggest-list" id="meBrandList"></div>
+      </div>
+    </div>
+    <div class="me-field">
+      <label>Date</label>
+      <input type="date" id="me-date">
+    </div>
+  </div>
+
+  <div class="me-table-wrap" id="meTableWrap">
+    <div class="me-table-head">
+      <span>Model</span><span>Qty</span><span>Price</span><span>Unit</span><span></span>
+    </div>
+    <div id="meRows"></div>
+    <button class="me-add-row" onclick="meAddRow()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add Row
+    </button>
+  </div>
+
+  <button class="btn btn-primary btn-full" onclick="meSaveAll()" style="margin-bottom:12px">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+    Save All
+  </button>
+</div>
+
+<div class="tabbar">
+  <button class="tab-btn active" onclick="switchTab('products',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    Search
+  </button>
+  <button class="tab-btn" onclick="switchTab('browse',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+    Browse
+  </button>
+  <button class="tab-btn" onclick="switchTab('dashboard',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+    Dashboard
+  </button>
+  <button class="tab-btn" onclick="switchTab('upload',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    Upload
+  </button>
+  <button class="tab-btn" onclick="switchTab('manual',this);meInitPage()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Add
+  </button>
+  <button class="tab-btn" onclick="switchTab('settings',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+    Settings
+  </button>
+</div>
+
+<div class="modal-overlay" id="productModal" onclick="closeProductModal(event)">
+  <div class="modal" id="productModalContent"></div>
+</div>
+
+<div class="date-modal" id="dateModal">
+  <div class="date-modal-box">
+    <div class="date-modal-title">Order Date</div>
+    <div class="date-modal-sub" id="dateModalSub"></div>
+    <div class="input-group">
+      <label>Date</label>
+      <input type="date" id="dateModalInput">
+    </div>
+    <div class="row mt-12">
+      <button class="btn btn-ghost btn-full" onclick="cancelDateModal()">Skip</button>
+      <button class="btn btn-primary btn-full" onclick="confirmDateModal()">Import</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="exportModal" onclick="closeExportModal(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header"><div class="modal-title">Export Data</div><div class="modal-sub">Choose what to export</div></div>
+    <div id="exportOptions"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let DB={files:[],products:[],markup:{}};
+let pendingFiles=[],pendingFileIndex=0,currentFilter='all';
+const STORAGE_KEY='stockmgr_v3';
+
+const KNOWN_BRANDS=['samsung','oppo','vivo','xiaomi','realme','iphone','apple','huawei','oneplus','one plus','itel','tecno','infinix','google','pixel','symphony','nokia','motorola','moto','nothing','redmi','poco','honor','asus','sony','lg','lenovo','meizu','blackberry','htc','micromax','lava','gionee','coolpad','zte','alcatel','wiko'];
+
+// NORMALIZATION
+function normalizeModel(name){
+  if(!name)return'';
+  let s=name.trim().toLowerCase();
+  // + → plus
+  s=s.replace(/\+/g,' plus');
+  // collapse spaces
+  s=s.replace(/\s+/g,' ').trim();
+  // 4G/5G/3G/2G — ensure space before token
+  s=s.replace(/(\d)\s*(4g|5g|3g|2g)\b/gi,'$1 $2');
+  // space between digit and multi-letter keywords: 10pro→10 pro
+  s=s.replace(/(\d)(pro|plus|max|lite|ultra|mini|neo|fe)/gi,'$1 $2');
+  s=s.replace(/(pro|plus|max|lite|ultra|mini|neo|fe)(\d)/gi,'$1 $2');
+  // space only when 2+ letter word runs into digits: note10→note 10, redmi10→redmi 10
+  // single-letter prefixes stay glued: s20, a12, x50
+  s=s.replace(/([a-z]{2,})(\d)/gi,'$1 $2');
+  // collapse
+  s=s.replace(/\s+/g,' ').trim();
+  // Title Case
+  s=s.replace(/(?:^|\s)\S/g,c=>c.toUpperCase());
+  // 4G/5G/3G/2G always uppercase
+  s=s.replace(/\b(4g|5g|3g|2g)\b/gi,c=>c.toUpperCase());
+  return s;
+}
+function normalizeCategory(name){
+  if(!name)return'';
+  // Trim, collapse whitespace, Title Case every word — so "c/c flex ", "C/C FLEX", "c/c Flex" → "C/C Flex"
+  return name.trim().replace(/\s+/g,' ').toLowerCase().replace(/(?:^|\s|\/)\S/g,c=>c.toUpperCase());
+}
+function normalizeBrand(name){
+  if(!name)return'';
+  // Trim, collapse whitespace, Title Case — "SAMSUNG", "samsung", "Samsung " → "Samsung"
+  return name.trim().replace(/\s+/g,' ').toLowerCase().replace(/(?:^|\s)\S/g,c=>c.toUpperCase());
+}
+function similarity(a,b){
+  const al=a.toLowerCase(),bl=b.toLowerCase();
+  if(al===bl)return 1;
+  if(al.length<2||bl.length<2)return 0;
+  // Protect: if one is just the other + short suffix (Hot 50 vs Hot 50i), never merge
+  const shorter=al.length<=bl.length?al:bl;
+  const longer=al.length<=bl.length?bl:al;
+  if(longer.startsWith(shorter)&&/^[a-z0-9]{1,3}$/.test(longer.slice(shorter.length).trim()))return 0;
+  const bg=s=>{const r=new Set();for(let i=0;i<s.length-1;i++)r.add(s[i]+s[i+1]);return r;};
+  const ba=bg(al),bb=bg(bl);let n=0;
+  ba.forEach(g=>{if(bb.has(g))n++;});
+  return(2*n)/(ba.size+bb.size);
+}
+function findSimilarProduct(category,brand,model){
+  const catL=category.toLowerCase(),brandL=brand.toLowerCase(),modelL=model.toLowerCase();
+  for(const p of DB.products){
+    if(p.category.toLowerCase()!==catL||p.brand.toLowerCase()!==brandL)continue;
+    if(p.model.toLowerCase()===modelL)return p.key;
+    if(similarity(p.model,model)>=0.92)return p.key;
+  }
+  return null;
+}
+
+// STORAGE
+function saveDB(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(DB));}catch(e){}}
+function loadDB(){
+  try{const d=localStorage.getItem(STORAGE_KEY);if(d)DB=JSON.parse(d);}catch(e){}
+  // Migrate: re-normalize category names so variants like "EarSpeaker with flex" unify
+  const catMap={};
+  DB.products.forEach(p=>{
+    const norm=normalizeCategory(p.category);
+    if(!catMap[norm])catMap[norm]=norm;
+    p.category=catMap[norm];
+    p.brand=normalizeBrand(p.brand);
+    p.model=normalizeModel(p.model);
+    p.key=p.category+'||'+p.brand+'||'+p.model;
+  });
+  // Merge any products that now have the same key after normalization
+  const merged={};
+  DB.products.forEach(p=>{
+    if(!merged[p.key]){merged[p.key]=p;}
+    else{p.history.forEach(h=>{const dup=merged[p.key].history.find(x=>x.date===h.date&&x.price===h.price&&x.fileId===h.fileId);if(!dup)merged[p.key].history.push(h);});}
+  });
+  DB.products=Object.values(merged);
+  DB.products.forEach(p=>p.history.sort((a,b)=>a.date.localeCompare(b.date)));
+}
+
+loadDB();restoreConvRate();renderAll();
+
+function saveConvRate(){
+  try{localStorage.setItem('stockmgr_rate',document.getElementById('convRate').value);}catch(e){}
+}
+function restoreConvRate(){
+  try{
+    const r=localStorage.getItem('stockmgr_rate');
+    if(r&&parseFloat(r)>0)document.getElementById('convRate').value=r;
+  }catch(e){}
+}
+
+function renderAll(){
+  renderCategoryFilters();renderProducts();renderBrowse();
+  renderFileList();renderMarkupTable();renderMergeTool();renderDashboard();
+}
+
+function switchTab(name,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='dashboard')renderDashboard();
+  if(name==='browse')renderBrowse();
+  if(name==='settings')renderMergeTool();
+}
+
+// UPLOAD
+function handleFileUpload(e){
+  const files=Array.from(e.target.files);
+  if(!files.length)return;
+  pendingFiles=files;pendingFileIndex=0;e.target.value='';
+  processNextFile();
+}
+function processNextFile(){
+  if(pendingFileIndex>=pendingFiles.length){renderAll();showToast('✅ All files imported!');return;}
+  const file=pendingFiles[pendingFileIndex];
+  const suggested=extractDateFromFilename(file.name);
+  document.getElementById('dateModalSub').textContent=file.name;
+  document.getElementById('dateModalInput').value=suggested||new Date().toISOString().split('T')[0];
+  document.getElementById('dateModal').classList.add('open');
+}
+function extractDateFromFilename(name){
+  const m=name.match(/(\d{2})(\d{2})/);
+  if(m){
+    const yr=new Date().getFullYear(),mo=parseInt(m[1]),dy=parseInt(m[2]);
+    if(mo>=1&&mo<=12&&dy>=1&&dy<=31)
+      return`${yr}-${String(mo).padStart(2,'0')}-${String(dy).padStart(2,'0')}`;
+  }
+  return null;
+}
+function cancelDateModal(){
+  document.getElementById('dateModal').classList.remove('open');
+  pendingFileIndex++;processNextFile();
+}
+function confirmDateModal(){
+  const date=document.getElementById('dateModalInput').value;
+  const file=pendingFiles[pendingFileIndex];
+  document.getElementById('dateModal').classList.remove('open');
+  readExcelFile(file,date);
+}
+function readExcelFile(file,date){
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const data=new Uint8Array(e.target.result);
+      const wb=XLSX.read(data,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      parseSheet(ws,file.name,date);
+    }catch(err){showToast('❌ Error: '+file.name);}
+    pendingFileIndex++;processNextFile();
+  };
+  reader.readAsArrayBuffer(file);
+}
+function isBrandRow(cellB,cellC,cellD){
+  if(!cellB||!cellB.v)return false;
+  const val=String(cellB.v).trim();
+  if(!val)return false;
+  // A model has price and/or qty — never treat it as a brand regardless of name
+  const hasPrice=cellD&&cellD.v&&parseFloat(cellD.v)>0;
+  const hasQty=cellC&&cellC.v&&parseFloat(cellC.v)>0;
+  if(hasPrice||hasQty)return false; // Has data → it's a model, not a brand
+  // No price and no qty → it's a brand header
+  // Extra confirmation: bold font in Excel (cellB.s?.font?.bold) also signals brand
+  return true;
+}
+function parseSheet(ws,filename,date){
+  const range=XLSX.utils.decode_range(ws['!ref']||'A1');
+  let currentCategory='',currentBrand='',imported=0;
+  const fileId=Date.now()+'_'+Math.random().toString(36).substr(2,6);
+  DB.files.push({id:fileId,name:filename,date,rows:0});
+  for(let R=range.s.r;R<=range.e.r;R++){
+    const cA=ws[XLSX.utils.encode_cell({r:R,c:0})];
+    const cB=ws[XLSX.utils.encode_cell({r:R,c:1})];
+    const cC=ws[XLSX.utils.encode_cell({r:R,c:2})];
+    const cD=ws[XLSX.utils.encode_cell({r:R,c:3})];
+    if(cA&&cA.v){const v=String(cA.v).trim();if(v&&v.toLowerCase()!=='category')currentCategory=normalizeCategory(v);}
+    if(!cB||!cB.v)continue;
+    const bVal=String(cB.v).trim();
+    if(!bVal)continue;
+    if(isBrandRow(cB,cC,cD)){currentBrand=normalizeBrand(bVal);continue;}
+    const model=normalizeModel(bVal);
+    const qty=cC?parseFloat(cC.v)||0:0;
+    const priceRmb=cD?parseFloat(cD.v)||0:0;
+    if(!priceRmb||priceRmb<=0)continue;
+    if(!currentCategory||!currentBrand||!model)continue;
+    const existingKey=findSimilarProduct(currentCategory,currentBrand,model);
+    let product;
+    if(existingKey){
+      product=DB.products.find(p=>p.key===existingKey);
+    }else{
+      const productKey=`${currentCategory}||${currentBrand}||${model}`;
+      product=DB.products.find(p=>p.key===productKey);
+      if(!product){product={key:productKey,category:currentCategory,brand:currentBrand,model,history:[]};DB.products.push(product);}
+    }
+    const dup=product.history.find(h=>h.date===date&&h.price===priceRmb&&h.fileId===fileId);
+    if(!dup){product.history.push({date,price:priceRmb,qty,fileId});product.history.sort((a,b)=>a.date.localeCompare(b.date));imported++;}
+  }
+  const fr=DB.files.find(f=>f.id===fileId);if(fr)fr.rows=imported;
+  saveDB();showToast(`📥 ${imported} products from ${filename}`);
+}
+
+// MERGE TOOL
+function findDuplicates(){
+  const pairs=[];
+  const cats=[...new Set(DB.products.map(p=>p.category))];
+  cats.forEach(cat=>{
+    const brands=[...new Set(DB.products.filter(p=>p.category===cat).map(p=>p.brand))];
+    brands.forEach(brand=>{
+      const prods=DB.products.filter(p=>p.category===cat&&p.brand===brand);
+      for(let i=0;i<prods.length;i++)
+        for(let j=i+1;j<prods.length;j++){
+          const sim=similarity(prods[i].model,prods[j].model);
+          if(sim>=0.75&&sim<1)pairs.push({a:prods[i],b:prods[j],sim});
+        }
+    });
+  });
+  return pairs.sort((a,b)=>b.sim-a.sim);
+}
+function renderMergeTool(){
+  const pairs=findDuplicates();
+  const el=document.getElementById('mergeToolContent');
+  if(!pairs.length){el.innerHTML='<div class="card-body" style="color:var(--text2);font-size:13px;text-align:center;padding:20px">✅ No duplicates detected</div>';return;}
+  el.innerHTML=pairs.map((pair,idx)=>`
+    <div class="merge-item">
+      <div style="font-size:11px;color:var(--text2);margin-bottom:6px">${pair.a.category} · ${pair.a.brand} · ${Math.round(pair.sim*100)}% match</div>
+      <div class="merge-names">
+        <span class="merge-name">${pair.a.model}</span>
+        <span class="merge-arrow">⟷</span>
+        <span class="merge-name">${pair.b.model}</span>
+      </div>
+      <div class="merge-actions">
+        <button class="btn btn-primary btn-sm" onclick="mergeProducts('${pair.a.key.replace(/'/g,"\\'")}','${pair.b.key.replace(/'/g,"\\'")}')">Merge → "${pair.a.model}"</button>
+        <button class="btn btn-ghost btn-sm" onclick="renderMergeTool()">Not Same</button>
+      </div>
+    </div>`).join('');
+}
+function mergeProducts(keyA,keyB){
+  const a=DB.products.find(p=>p.key===keyA);
+  const b=DB.products.find(p=>p.key===keyB);
+  if(!a||!b)return;
+  b.history.forEach(h=>{const dup=a.history.find(x=>x.date===h.date&&x.price===h.price&&x.fileId===h.fileId);if(!dup)a.history.push(h);});
+  a.history.sort((x,y)=>x.date.localeCompare(y.date));
+  DB.products=DB.products.filter(p=>p.key!==keyB);
+  saveDB();renderAll();showToast(`✅ Merged into "${a.model}"`);
+}
+
+// SEARCH
+function renderCategoryFilters(){
+  const cats=['all',...new Set(DB.products.map(p=>p.category))].sort((a,b)=>a==='all'?-1:a.localeCompare(b));
+  document.getElementById('categoryFilters').innerHTML=cats.map(c=>`<div class="filter-chip ${c===currentFilter?'active':''}" onclick="setFilter('${c}')">${c==='all'?'All':c}</div>`).join('');
+}
+function setFilter(cat){currentFilter=cat;renderCategoryFilters();renderProducts();}
+function renderProducts(){
+  const rate=parseFloat(document.getElementById('convRate').value)||18;
+  const search=document.getElementById('searchInput').value.toLowerCase();
+  const el=document.getElementById('productList');
+  let products=DB.products;
+  if(currentFilter!=='all')products=products.filter(p=>p.category===currentFilter);
+  if(search)products=products.filter(p=>p.category.toLowerCase().includes(search)||p.brand.toLowerCase().includes(search)||p.model.toLowerCase().includes(search));
+  if(!products.length){el.innerHTML=`<div class="empty"><div class="empty-icon">🔍</div><div class="empty-text">${DB.products.length?'No results':'No products yet'}</div><div class="empty-sub">${DB.products.length?'Try a different search':'Upload an Excel file to get started'}</div></div>`;return;}
+  const grouped={};
+  products.forEach(p=>{if(!grouped[p.category])grouped[p.category]={};if(!grouped[p.category][p.brand])grouped[p.category][p.brand]=[];grouped[p.category][p.brand].push(p);});
+  let html='';
+  Object.keys(grouped).sort().forEach(cat=>{
+    html+=`<div class="section-label">${cat}</div><div class="card">`;
+    Object.keys(grouped[cat]).sort().forEach(brand=>{
+      html+=`<div style="padding:9px 16px;border-bottom:1px solid var(--border);background:var(--surface2)"><span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text2)">${brand}</span></div>`;
+      grouped[cat][brand].forEach(p=>{
+        const latest=getLatestRecord(p),prev=getPrevRecord(p);
+        const markup=DB.markup[p.category]||0;
+        const bdt=latest?(latest.price*rate+markup).toFixed(2):'-';
+        const totalQty=p.history.reduce((s,h)=>s+(h.qty||0),0);
+        let trend='';
+        if(latest&&prev){
+          if(latest.price>prev.price)trend=`<span class="badge badge-up">▲ ${(latest.price-prev.price).toFixed(1)}</span>`;
+          else if(latest.price<prev.price)trend=`<span class="badge badge-down">▼ ${(prev.price-latest.price).toFixed(1)}</span>`;
+          else trend=`<span class="badge badge-same">—</span>`;
+        }
+        html+=`<div class="product-item" onclick="openProduct('${p.key.replace(/'/g,"\\'")}')">
+          <div class="product-top">
+            <div><div class="product-name">${p.model}</div><div class="product-meta">${totalQty} pcs · ${p.history.length} order${p.history.length!==1?'s':''}</div></div>
+            <div class="product-price"><div class="product-price-rmb">${latest?latest.price.toFixed(1):'-'} ¥</div><div class="product-price-bdt">${bdt} ৳</div></div>
+          </div>
+          ${trend?`<div class="product-bottom">${trend}</div>`:''}
+        </div>`;
+      });
+    });
+    html+='</div>';
+  });
+  el.innerHTML=html;
+}
+
+// BROWSE ALL
+function renderBrowse(){
+  const rate=parseFloat(document.getElementById('convRate').value)||18;
+  const el=document.getElementById('browseContent');
+  if(!DB.products.length){el.innerHTML='<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Nothing to browse yet</div><div class="empty-sub">Upload Excel files first</div></div>';return;}
+  const grouped={};
+  DB.products.forEach(p=>{if(!grouped[p.category])grouped[p.category]={};if(!grouped[p.category][p.brand])grouped[p.category][p.brand]=[];grouped[p.category][p.brand].push(p);});
+  let html='';
+  Object.keys(grouped).sort().forEach(cat=>{
+    const catProds=DB.products.filter(p=>p.category===cat);
+    const catQty=catProds.reduce((s,p)=>s+p.history.reduce((a,h)=>a+(h.qty||0),0),0);
+    const brandCount=Object.keys(grouped[cat]).length;
+    html+=`<div class="browse-category">
+      <div class="browse-cat-header" onclick="toggleCat(this)">
+        <div><div class="browse-cat-name">${cat}</div><div class="browse-cat-meta">${catProds.length} models · ${brandCount} brands · ${catQty} pcs total</div></div>
+        <span class="browse-cat-arrow">▼</span>
+      </div>
+      <div class="browse-cat-body">`;
+    Object.keys(grouped[cat]).sort().forEach(brand=>{
+      const bp=grouped[cat][brand];
+      const bq=bp.reduce((s,p)=>s+p.history.reduce((a,h)=>a+(h.qty||0),0),0);
+      html+=`<div class="browse-brand">
+        <div class="browse-brand-header" onclick="toggleBrand(this)">
+          <div><div class="browse-brand-name">${brand}</div><div style="font-size:11px;color:var(--text3);margin-top:2px">${bp.length} models · ${bq} pcs</div></div>
+          <span class="browse-brand-arrow">▼</span>
+        </div>
+        <div class="browse-brand-body">`;
+      bp.sort((a,b)=>a.model.localeCompare(b.model)).forEach(p=>{
+        const latest=getLatestRecord(p);
+        const markup=DB.markup[p.category]||0;
+        const bdt=latest?(latest.price*rate+markup).toFixed(2):'-';
+        const totalQty=p.history.reduce((s,h)=>s+(h.qty||0),0);
+        html+=`<div class="browse-model" onclick="openProduct('${p.key.replace(/'/g,"\\'")}')">
+          <div><div class="browse-model-name">${p.model}</div><div class="browse-model-qty">${totalQty} pcs · ${p.history.length} order${p.history.length!==1?'s':''}</div></div>
+          <div class="browse-model-price"><div class="browse-model-rmb">${latest?latest.price.toFixed(1):'-'} ¥</div><div class="browse-model-bdt">${bdt} ৳</div></div>
+        </div>`;
+      });
+      html+=`</div></div>`;
+    });
+    html+=`</div></div>`;
+  });
+  el.innerHTML=html;
+}
+function toggleCat(h){const b=h.nextElementSibling,a=h.querySelector('.browse-cat-arrow');b.classList.toggle('open');a.classList.toggle('open');}
+function toggleBrand(h){const b=h.nextElementSibling,a=h.querySelector('.browse-brand-arrow');b.classList.toggle('open');a.classList.toggle('open');}
+
+// PRODUCT DETAIL
+function fmtBdt(rmb,rate,markup){return(rmb*rate+markup).toFixed(2);}
+
+function openProduct(key,editMode){
+  const p=DB.products.find(x=>x.key===key);if(!p)return;
+  const rate=parseFloat(document.getElementById('convRate').value)||18;
+  const markup=DB.markup[p.category]||0;
+  const totalQty=p.history.reduce((s,h)=>s+(h.qty||0),0);
+  const latest=getLatestRecord(p),prev=getPrevRecord(p);
+  const safeKey=key.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+
+  if(editMode){
+    const histRows=[...p.history].reverse().map((h,i)=>{
+      const realIdx=p.history.length-1-i;
+      return`<div class="hist-edit-row">
+        <div class="hist-edit-date">${formatDate(h.date)}</div>
+        <input class="hist-edit-input" type="number" id="ep-qty-${realIdx}" value="${h.qty}" min="0" step="1" placeholder="Qty">
+        <input class="hist-edit-input" type="number" id="ep-price-${realIdx}" value="${h.price}" min="0" step="0.01" placeholder="¥ RMB">
+        <button class="hist-del-btn" onclick="deleteHistoryEntry('${safeKey}',${realIdx})">✕</button>
+      </div>`;
+    }).join('');
+    document.getElementById('productModalContent').innerHTML=`
+      <div class="modal-handle"></div>
+      <div class="modal-header" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <div><div class="modal-title">Edit Product</div><div class="modal-sub">${p.brand} · ${p.category}</div></div>
+        <button class="btn btn-ghost btn-sm" onclick="openProduct('${safeKey}')">Cancel</button>
+      </div>
+      <div class="modal-body">
+        <div class="edit-field"><label>Category</label><input id="ep-cat" value="${p.category.replace(/"/g,'&quot;')}"></div>
+        <div class="edit-field"><label>Brand</label><input id="ep-brand" value="${p.brand.replace(/"/g,'&quot;')}"></div>
+        <div class="edit-field"><label>Model</label><input id="ep-model" value="${p.model.replace(/"/g,'&quot;')}"></div>
+        <div class="section-label" style="margin-top:4px">Order History <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3);font-size:10px">(qty · price in ¥ RMB)</span></div>
+        <div class="card" style="margin-bottom:0">${histRows||'<div style="padding:12px;color:var(--text2);font-size:13px">No history</div>'}</div>
+        <div class="edit-actions">
+          <button class="btn btn-primary" style="flex:1" onclick="saveProductEdits('${safeKey}')">Save Changes</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteProduct('${safeKey}')">Delete</button>
+        </div>
+      </div>`;
+  } else {
+    let trendText='';
+    if(latest&&prev){
+      const diff=latest.price-prev.price;
+      if(diff>0)trendText=`<span class="badge badge-up">▲ +${diff.toFixed(2)} ¥ since last order</span>`;
+      else if(diff<0)trendText=`<span class="badge badge-down">▼ ${Math.abs(diff).toFixed(2)} ¥ since last order</span>`;
+      else trendText=`<span class="badge badge-same">No price change</span>`;
+    }
+    const histHtml=[...p.history].reverse().map(h=>`
+      <div class="history-item">
+        <div><div class="history-date">${formatDate(h.date)}</div><div class="history-qty">${h.qty} pcs ordered</div></div>
+        <div style="text-align:right"><div class="history-price">${h.price.toFixed(2)} ¥</div><div style="font-size:11px;color:var(--text2)">${fmtBdt(h.price,rate,markup)} ৳</div></div>
+      </div>`).join('');
+    document.getElementById('productModalContent').innerHTML=`
+      <div class="modal-handle"></div>
+      <div class="modal-header" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <div><div class="modal-title">${p.model}</div><div class="modal-sub">${p.brand} · ${p.category}</div></div>
+        <button class="btn btn-ghost btn-sm" onclick="openProduct('${safeKey}',true)">✏️ Edit</button>
+      </div>
+      <div class="modal-body">
+        <div class="stats-row">
+          <div class="stat-card"><div class="stat-val">${latest?latest.price.toFixed(2):'-'}</div><div class="stat-label">Latest ¥</div></div>
+          <div class="stat-card"><div class="stat-val">${latest?fmtBdt(latest.price,rate,markup):'-'}</div><div class="stat-label">Sell ৳</div></div>
+          <div class="stat-card"><div class="stat-val">${totalQty}</div><div class="stat-label">Total Qty</div></div>
+        </div>
+        ${trendText?`<div style="margin-bottom:12px">${trendText}</div>`:''}
+        <div class="section-label">Order History</div>
+        <div class="card">${histHtml||'<div style="padding:16px;color:var(--text2);font-size:13px">No history</div>'}</div>
+      </div>`;
+  }
+  document.getElementById('productModal').classList.add('open');
+}
+
+function saveProductEdits(key){
+  const p=DB.products.find(x=>x.key===key);if(!p)return;
+  const newCat=normalizeCategory(document.getElementById('ep-cat').value.trim());
+  const newBrand=normalizeBrand(document.getElementById('ep-brand').value.trim());
+  const newModel=normalizeModel(document.getElementById('ep-model').value.trim());
+  if(!newCat||!newBrand||!newModel){showToast('⚠️ Fields cannot be empty');return;}
+  p.history.forEach((h,i)=>{
+    const pe=document.getElementById('ep-price-'+i);
+    const qe=document.getElementById('ep-qty-'+i);
+    if(pe){const v=parseFloat(pe.value);if(v>0)h.price=parseFloat(v.toFixed(4));}
+    if(qe){h.qty=parseFloat(qe.value)||0;}
+  });
+  p.category=newCat;p.brand=newBrand;p.model=newModel;
+  p.key=newCat+'||'+newBrand+'||'+newModel;
+  saveDB();renderAll();
+  openProduct(p.key);
+  showToast('✅ Saved');
+}
+
+function deleteHistoryEntry(key,idx){
+  const p=DB.products.find(x=>x.key===key);if(!p)return;
+  if(p.history.length<=1){showToast('⚠️ Cannot delete last entry — delete product instead');return;}
+  p.history.splice(idx,1);
+  saveDB();openProduct(key,true);
+  showToast('🗑️ Entry removed');
+}
+
+function closeProductModal(e){if(e.target.id==='productModal')document.getElementById('productModal').classList.remove('open');}
+function deleteProduct(key){
+  if(!confirm('Delete this product and all its history?'))return;
+  DB.products=DB.products.filter(p=>p.key!==key);
+  saveDB();document.getElementById('productModal').classList.remove('open');
+  renderAll();showToast('🗑️ Product deleted');
+}
+
+// FILE LIST
+function renderFileList(){
+  const el=document.getElementById('fileList');
+  if(!DB.files.length){el.innerHTML='<div class="empty"><div class="empty-icon">📁</div><div class="empty-text">No files yet</div></div>';return;}
+  el.innerHTML=[...DB.files].reverse().map(f=>`
+    <div class="file-item">
+      <div><div class="file-name">📄 ${f.name}</div><div class="file-date">${formatDate(f.date)}</div><div class="file-rows">${f.rows} products imported</div></div>
+      <button class="btn btn-danger btn-sm" onclick="deleteFile('${f.id}')">Remove</button>
+    </div>`).join('');
+}
+function deleteFile(id){
+  if(!confirm('Remove this file? Related records will also be removed.'))return;
+  DB.products.forEach(p=>{p.history=p.history.filter(h=>h.fileId!==id);});
+  DB.products=DB.products.filter(p=>p.history.length>0);
+  DB.files=DB.files.filter(f=>f.id!==id);
+  saveDB();renderAll();showToast('🗑️ File removed');
+}
+
+// MARKUP
+function renderMarkupTable(){
+  const cats=[...new Set(DB.products.map(p=>p.category))].sort();
+  const el=document.getElementById('markupTable');
+  if(!cats.length){el.innerHTML='<div class="card-body" style="color:var(--text2);font-size:13px">Upload files first to see categories.</div>';return;}
+  el.innerHTML=cats.map(cat=>`
+    <div class="markup-item">
+      <div class="markup-cat">${cat}</div>
+      <input class="markup-input" type="number" id="markup_${cat.replace(/[^a-z0-9]/gi,'_')}" value="${DB.markup[cat]||0}" min="0" step="1">
+      <span style="font-size:12px;color:var(--text2)">৳</span>
+    </div>`).join('');
+}
+function saveMarkup(){
+  const cats=[...new Set(DB.products.map(p=>p.category))];
+  cats.forEach(cat=>{const el=document.getElementById('markup_'+cat.replace(/[^a-z0-9]/gi,'_'));if(el)DB.markup[cat]=parseFloat(el.value)||0;});
+  saveDB();renderProducts();renderBrowse();showToast('✅ Markup saved');
+}
+
+// DASHBOARD
+function renderDashboard(){
+  const el=document.getElementById('dashContent');
+  if(!DB.products.length){el.innerHTML='<div class="empty"><div class="empty-icon">📊</div><div class="empty-text">No data yet</div><div class="empty-sub">Upload files to see dashboard</div></div>';return;}
+  const rate=parseFloat(document.getElementById('convRate').value)||18;
+  const total=DB.products.length;
+  const totalQty=DB.products.reduce((s,p)=>s+p.history.reduce((a,h)=>a+(h.qty||0),0),0);
+  const cats=[...new Set(DB.products.map(p=>p.category))];
+  let priceUp=0,priceDown=0,noChange=0;
+  DB.products.forEach(p=>{const l=getLatestRecord(p),v=getPrevRecord(p);if(l&&v){if(l.price>v.price)priceUp++;else if(l.price<v.price)priceDown++;else noChange++;}});
+  const catStats=cats.map(cat=>{
+    const prods=DB.products.filter(p=>p.category===cat);
+    const qty=prods.reduce((s,p)=>s+p.history.reduce((a,h)=>a+(h.qty||0),0),0);
+    return{cat,count:prods.length,qty};
+  }).sort((a,b)=>b.qty-a.qty);
+  const maxQty=Math.max(...catStats.map(c=>c.qty),1);
+  el.innerHTML=`
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-val">${total}</div><div class="stat-label">Models</div></div>
+      <div class="stat-card"><div class="stat-val">${totalQty}</div><div class="stat-label">Total Qty</div></div>
+      <div class="stat-card"><div class="stat-val">${cats.length}</div><div class="stat-label">Categories</div></div>
+    </div>
+    ${priceUp||priceDown?`<div class="card" style="margin-bottom:12px">
+      <div class="card-header"><div class="card-title">Price Changes</div></div>
+      <div class="card-body"><div style="display:flex;gap:10px">
+        <div style="flex:1;text-align:center;padding:10px;background:var(--red-light);border-radius:8px"><div style="font-size:20px;font-weight:600;color:var(--red)">${priceUp}</div><div style="font-size:11px;color:var(--red)">▲ Price Up</div></div>
+        <div style="flex:1;text-align:center;padding:10px;background:var(--green-light);border-radius:8px"><div style="font-size:20px;font-weight:600;color:var(--green)">${priceDown}</div><div style="font-size:11px;color:var(--green)">▼ Price Down</div></div>
+        <div style="flex:1;text-align:center;padding:10px;background:var(--surface2);border-radius:8px"><div style="font-size:20px;font-weight:600;color:var(--text2)">${noChange}</div><div style="font-size:11px;color:var(--text2)">— Same</div></div>
+      </div></div></div>`:''}
+    <div class="card">
+      <div class="card-header"><div class="card-title">Qty by Category</div></div>
+      <div class="card-body">
+        <div class="bar-chart" style="margin-bottom:14px">
+          ${catStats.map(c=>`<div class="bar-wrap"><div class="bar" style="height:${Math.max(6,(c.qty/maxQty)*70)}px"></div><div class="bar-label">${c.cat.split(' ')[0]}</div></div>`).join('')}
+        </div>
+        ${catStats.map(c=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)"><div style="font-size:13px">${c.cat}</div><div style="display:flex;gap:12px;font-size:12px;color:var(--text2)"><span>${c.count} models</span><span style="font-family:'DM Mono',monospace;font-weight:600;color:var(--text)">${c.qty} pcs</span></div></div>`).join('')}
+      </div>
+    </div>`;
+}
+
+// EXPORT
+function openExportModal(){
+  const cats=[...new Set(DB.products.map(p=>p.category))].sort();
+  const brands=[...new Set(DB.products.map(p=>p.brand))].sort();
+  let html=`<div class="export-option" onclick="exportData('all')"><div class="export-icon">📦</div><div><div class="export-label">Export Everything</div><div class="export-desc">All products, all categories</div></div></div>`;
+  cats.forEach(cat=>{html+=`<div class="export-option" onclick="exportData('cat','${cat.replace(/'/g,"\\'")}')"><div class="export-icon">🗂️</div><div><div class="export-label">${cat}</div><div class="export-desc">All products in this category</div></div></div>`;});
+  brands.forEach(brand=>{html+=`<div class="export-option" onclick="exportData('brand','${brand.replace(/'/g,"\\'")}')"><div class="export-icon">🏷️</div><div><div class="export-label">${brand}</div><div class="export-desc">All ${brand} models</div></div></div>`;});
+  document.getElementById('exportOptions').innerHTML=html;
+  document.getElementById('exportModal').classList.add('open');
+}
+function closeExportModal(e){if(e.target.id==='exportModal')document.getElementById('exportModal').classList.remove('open');}
+function exportData(type,value){
+  const rate=parseFloat(document.getElementById('convRate').value)||18;
+  let products=DB.products;
+  if(type==='cat')products=products.filter(p=>p.category===value);
+  if(type==='brand')products=products.filter(p=>p.brand===value);
+  const rows=[['Category','Brand','Model','Latest Price (RMB)','Selling Price (BDT)','Total Qty Ordered','Orders Count','First Order','Last Order']];
+  products.forEach(p=>{
+    const markup=DB.markup[p.category]||0,latest=getLatestRecord(p);
+    const totalQty=p.history.reduce((s,h)=>s+(h.qty||0),0);
+    rows.push([p.category,p.brand,p.model,latest?latest.price:'',latest?(latest.price*rate+markup).toFixed(0):'',totalQty,p.history.length,p.history[0]?.date||'',latest?.date||'']);
+  });
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[14,12,20,16,16,14,12,12,12].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb,ws,'Products');
+  XLSX.writeFile(wb,`stockmgr_${type}_${new Date().toISOString().split('T')[0]}.xlsx`);
+  document.getElementById('exportModal').classList.remove('open');
+  showToast('✅ Exported!');
+}
+
+// ─── MANUAL ENTRY ──────────────────────────────────────────────────────────
+let meRowCount = 0;
+
+function meInitPage(){
+  // Set today's date if not set
+  const d = document.getElementById('me-date');
+  if(!d.value) d.value = new Date().toISOString().split('T')[0];
+  // Add 5 rows if empty
+  const rows = document.getElementById('meRows');
+  if(!rows.children.length){
+    meRowCount = 0;
+    for(let i=0;i<5;i++) meAddRow();
+  }
+}
+
+function meAddRow(){
+  const id = ++meRowCount;
+  const div = document.createElement('div');
+  div.className = 'me-row';
+  div.id = 'me-row-' + id;
+  div.innerHTML = `
+    <input type="text" id="me-model-${id}" placeholder="Model name" oninput="meUpdatePreview(${id})">
+    <input type="number" id="me-qty-${id}" placeholder="—" min="0" step="1">
+    <input type="number" id="me-price-${id}" placeholder="Price" min="0" step="0.01" oninput="meUpdatePreview(${id})">
+    <div class="me-cur-toggle">
+      <button class="me-cur-btn active" id="me-rmb-${id}" onclick="meSetCur(${id},'rmb')">¥</button>
+      <button class="me-cur-btn" id="me-bdt-${id}" onclick="meSetCur(${id},'bdt')">৳</button>
+    </div>
+    <button class="me-del-btn" onclick="meRemoveRow(${id})">×</button>`;
+  document.getElementById('meRows').appendChild(div);
+}
+
+function meRemoveRow(id){
+  const el = document.getElementById('me-row-'+id);
+  if(el) el.remove();
+}
+
+function meSetCur(id, cur){
+  document.getElementById('me-rmb-'+id).classList.toggle('active', cur==='rmb');
+  document.getElementById('me-bdt-'+id).classList.toggle('active', cur==='bdt');
+  meUpdatePreview(id);
+}
+
+function meGetCur(id){
+  return document.getElementById('me-rmb-'+id).classList.contains('active') ? 'rmb' : 'bdt';
+}
+
+function meUpdatePreview(id){
+  // Could add live RMB↔BDT preview under price field in future
+}
+
+function meSuggest(inputId, listId, getOptions){
+  const val = document.getElementById(inputId).value.trim().toLowerCase();
+  const list = document.getElementById(listId);
+  if(!val){ list.classList.remove('open'); return; }
+  const opts = getOptions().filter(o => o.toLowerCase().includes(val));
+  if(!opts.length){ list.classList.remove('open'); return; }
+  list.innerHTML = opts.slice(0,8).map(o =>
+    `<div class="me-suggest-item" onmousedown="document.getElementById('${inputId}').value='${o.replace(/'/,"\'")}';document.getElementById('${listId}').classList.remove('open')">${o}</div>`
+  ).join('');
+  list.classList.add('open');
+}
+
+function meSaveAll(){
+  const rate = parseFloat(document.getElementById('convRate').value) || 18;
+  const cat  = normalizeCategory(document.getElementById('me-cat').value.trim());
+  const brand = normalizeBrand(document.getElementById('me-brand').value.trim());
+  const date = document.getElementById('me-date').value;
+
+  if(!cat)  { showToast('⚠️ Enter a category'); return; }
+  if(!brand){ showToast('⚠️ Enter a brand');    return; }
+  if(!date) { showToast('⚠️ Pick a date');       return; }
+
+  const rows = document.getElementById('meRows').children;
+  let saved = 0, skipped = 0;
+  const batchId = 'manual_' + Date.now();
+
+  Array.from(rows).forEach(row => {
+    const id = row.id.replace('me-row-','');
+    const modelRaw = document.getElementById('me-model-'+id)?.value.trim();
+    const qtyRaw   = document.getElementById('me-qty-'+id)?.value;
+    const priceRaw = document.getElementById('me-price-'+id)?.value;
+    const cur      = meGetCur(id);
+
+    if(!modelRaw || !priceRaw) { skipped++; return; }
+
+    const model = normalizeModel(modelRaw);
+    const qty   = parseFloat(qtyRaw) || 0;
+    const priceInput = parseFloat(priceRaw);
+    if(!priceInput || priceInput <= 0) { skipped++; return; }
+
+    // Convert BDT → RMB if needed (reverse: rmb = (bdt - markup) / rate)
+    const markup = DB.markup[cat] || 0;
+    const priceRmb = cur === 'bdt'
+      ? Math.max(0.01, (priceInput - markup) / rate)
+      : priceInput;
+
+    // Find or create product
+    const existingKey = findSimilarProduct(cat, brand, model);
+    let product;
+    if(existingKey){
+      product = DB.products.find(p => p.key === existingKey);
+    } else {
+      const productKey = `${cat}||${brand}||${model}`;
+      product = DB.products.find(p => p.key === productKey);
+      if(!product){
+        product = {key:productKey, category:cat, brand, model, history:[]};
+        DB.products.push(product);
+      }
+    }
+
+    // Add history entry (same merge logic as file upload)
+    const dup = product.history.find(h => h.date===date && Math.abs(h.price-priceRmb)<0.001 && h.fileId===batchId);
+    if(!dup){
+      product.history.push({date, price:parseFloat(priceRmb.toFixed(4)), qty, fileId:batchId});
+      product.history.sort((a,b) => a.date.localeCompare(b.date));
+      saved++;
+    }
+  });
+
+  if(!saved){ showToast('⚠️ No valid rows to save'); return; }
+
+  saveDB();
+  renderAll();
+  showToast(`✅ ${saved} model${saved!==1?'s':''} saved!`);
+
+  // Reset rows
+  document.getElementById('meRows').innerHTML = '';
+  meRowCount = 0;
+  for(let i=0;i<5;i++) meAddRow();
+}
+// ───────────────────────────────────────────────────────────────────────────
+
+// UTILS
+function getLatestRecord(p){return p.history.length?p.history[p.history.length-1]:null;}
+function getPrevRecord(p){return p.history.length>=2?p.history[p.history.length-2]:null;}
+function formatDate(d){
+  if(!d)return'';
+  const[y,m,day]=d.split('-');
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return`${parseInt(day)} ${months[parseInt(m)-1]} ${y}`;
+}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+function clearAllData(){
+  if(!confirm('Clear ALL data? This cannot be undone.'))return;
+  DB={files:[],products:[],markup:{}};saveDB();currentFilter='all';renderAll();showToast('🗑️ All data cleared');
+}
+</script>
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('./sw.js');
+  });
+}
+</script>
+</body>
+</html>
